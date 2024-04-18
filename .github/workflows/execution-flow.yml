@@ -25,7 +25,9 @@ jobs:
     - name: save success output
       id: success-output-step
       if: steps.lint-step.outcome == 'success'
-      run: echo "lint-oresult=success" >> $GITHUB_OUTPUT
+      run: |
+        echo "lint-result=success" >> $GITHUB_OUTPUT
+        cat $GITHUB_OUTPUT
     - name: save failure output
       if: failure() && steps.lint-step.outcome == 'failure'
       run: echo "lint-result=failure"
@@ -51,3 +53,13 @@ jobs:
         path: dist
     - name: print lint result
       run: echo "${{needs.lint.outputs.lint-outcome}}"
+  deploy:
+    needs: ["build"]
+    runs-on: ubuntu-latest
+    steps:
+    - name: download build artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-files-artifact
+    - name: list artifact content
+      run: ls
