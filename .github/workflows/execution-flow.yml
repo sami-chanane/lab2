@@ -5,7 +5,32 @@ on:
     branches:
     - master
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    outputs:
+      lint-outcome: ${{steps.success-output-step.outputs.lint-result}}
+    steps:
+    - name: get code
+      uses: actions/checkout@v4
+    - name: cache dependencies
+      uses: actions/cache@v4
+      with:
+        key: dependencies-${{hashFiles('**/package-lock.json')}}
+        path: node_modules
+    - name: install dependencies
+      run: npm ci
+    - name: lint code
+      id: lint-step
+      run: npm run lint
+    - name: save success output
+      id: success-output-step
+      if: steps.lint-step.outcome == 'success'
+      run: echo "lint-oresult=success" >> $GITHUB_OUTPUT
+    - name: save failure output
+      if: failure() && steps.lint-step.outcome == 'failure'
+      run: echo "lint-result=failure"
   build:
+    needs: ["lint"]
     runs-on: ubuntu-latest
     steps:
     - name: get code
@@ -19,3 +44,10 @@ jobs:
       run: npm ci
     - name: build code
       run: npm run build
+    - name: upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-files-artifact
+        path: dist
+    - name: print lint result
+      run: echo "${{needs.lint.outputs.lint-outcome}}"
